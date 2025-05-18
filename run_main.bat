@@ -1,9 +1,14 @@
+REM for Windows 環境
 @echo off
-cd /d C:\file_adress\
+
+REM 將目前目錄切換到你的專案資料夾
+cd /d C:\Users\YourName\your_project
+
+REM 如果你有使用虛擬環境，請先啟用它
+REM call venv\Scripts\activate
+
+REM 執行主程式 main.py
 python main.py
 
-:: change file_adress to your file address
-
-:: if you use virtual environment, 
-:: you can use this code before python main.py
-:: call venv\Scripts\activate
+REM 將結果輸出到 log 檔案（可選）
+REM python main.py >> run.log 2>&1
