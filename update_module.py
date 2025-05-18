@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import requests as r
 import pandas as pd
 from datetime import datetime, date, timedelta

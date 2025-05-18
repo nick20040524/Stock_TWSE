@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from update_module import twse_stock_info, prepare_stock_update, update_stock_data_incrementally, check_fallback_csvs, get_target_codes
 
 # 股票清單

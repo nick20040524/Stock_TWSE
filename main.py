@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # 設定中文字體
 prop = setup_chinese_font()
 
