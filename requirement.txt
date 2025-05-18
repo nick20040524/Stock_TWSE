@@ -1,0 +1,3 @@
+!pip install yfinance
+!apt-get -y update
+!apt-get -y install fonts-noto-cjk
