@@ -113,3 +113,14 @@ python main.py
 ## 📜 License
 
 本專案開源，僅供學術與研究用途使用。
+
+---
+
+## 📚 參考資料
+- [【Python股市爬蟲 第3集】一口氣爬多檔台股個股｜必學的股市爬蟲技術](https://www.youtube.com/watch?v=wM5wJNgpIbA&ab_channel=%E8%82%A1%E6%B5%B7%E5%B0%8F%E8%8B%B1%E9%9B%84)
+- [一口氣爬多檔台股個股 Colab程式碼](https://colab.research.google.com/drive/1gSpB7NWEUu7gOv53c6VQsO0E3jUqUreo?usp=sharing)
+- [台灣證券交易所官方網站 (TWSE)](https://www.twse.com.tw/)
+- [Google Fonts: Noto Sans CJK](https://www.google.com/get/noto/#sans-hant)
+- [scikit-learn 官方文件](https://scikit-learn.org/stable/)
+- [Matplotlib 圖表官方教學](https://matplotlib.org/stable/users/index.html)
+- [pandas 中文手冊](https://pandas.pydata.org/docs/)
