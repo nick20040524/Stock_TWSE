@@ -27,7 +27,10 @@
 pip install -r requirements.txt
 ```
 
-### 2️⃣ 下載字體（Ubuntu 系統）
+### 2️⃣ 下載中文字體
+
+- ✅ **Windows/macOS**：系統已內建常見中文字體（如微軟正黑體、蘋方），無需額外安裝。
+- 🐧 **Ubuntu/Linux**：請安裝 `fonts-noto-cjk` 以避免中文亂碼：
 
 ```bash
 sudo apt install fonts-noto-cjk
@@ -103,7 +106,7 @@ python main.py
 ## 👨‍💻 作者
 
 徐景煌 @ National Ilan University  
-國立宜蘭大學 電子工程學系 | 股票爬蟲與預測專案
+電子工程系 | 股票爬蟲與預測專案
 
 ---
 
