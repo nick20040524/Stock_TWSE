@@ -1,3 +1,7 @@
-!pip install yfinance
-!apt-get -y update
-!apt-get -y install fonts-noto-cjk
+pandas>=1.5
+requests>=2.28
+lxml>=4.9
+matplotlib>=3.5
+scikit-learn>=1.2
+openpyxl>=3.0
+ipython>=8.0

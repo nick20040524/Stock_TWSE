@@ -1,4 +1,18 @@
 # -*- coding: utf-8 -*-
+# 自訂函式引入
+from stock.twse_stock_info import twse_stock_info 
+from stock.update_module import (
+    get_target_codes,
+    update_stock_data_incrementally,
+    check_fallback_csvs
+)
+from stock.predict_and_export import (
+    predict_multiple_stocks,
+    plot_predictions,
+    export_prediction_summary
+)
+from stock.setup_chinese_font import setup_chinese_font
+
 # 設定中文字體
 prop = setup_chinese_font()
 
