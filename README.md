@@ -92,17 +92,92 @@ update_stock_data_incrementally(..., verify_ssl=verify_ssl)
 
 ---
 
-## ⏱️ 自動排程建議
+## ⏱️ 自動排程
 
-### Windows 任務排程器
+## 🪟 Windows：使用工作排程器 + `run_main.bat`
 
-建立 `run_main.bat`：
+### ✅ 已提供批次檔案：`run_main.bat`
+
+內容如下：
 
 ```bat
 @echo off
-cd /d C:\你的\資料夾路徑
+cd /d C:\Users\你的使用者名稱\路徑\Stock_TWSE
 python main.py
 ```
+
+### ✅ 設定步驟：
+
+1. 開啟「工作排程器」→ 建立新工作
+2. 【觸發條件】設定為每天固定時間（如早上 8:00）
+3. 【動作】選擇「啟動程式」，指定 `run_main.bat` 的完整路徑
+4. 【一般】勾選「以最高權限執行」
+5. 儲存並啟用即可每日自動執行
+
+---
+
+## 🍎 macOS / 🐧 Linux：使用 crontab + `run_main.sh`
+
+### ✅ 已提供 shell 腳本：`run_main.sh`
+
+檔案內容如下：
+
+```bash
+#!/bin/bash
+cd /home/your_username/your_project/
+python3 main.py
+```
+
+如使用虛擬環境，請啟用虛擬環境再執行程式：
+
+```bash
+source venv/bin/activate
+python3 main.py
+```
+
+### ✅ 設定排程：
+
+1. 開啟終端機
+2. 執行命令：
+
+```bash
+crontab -e
+```
+
+3. 加入以下排程設定（每天早上 8 點執行）：
+
+```bash
+0 8 * * * /bin/bash /home/your_username/your_project/run_main.sh >> /home/your_username/your_project/run.log 2>&1
+```
+
+4. 儲存並離開編輯器，排程即自動生效
+
+---
+
+## 📁 注意事項：
+
+- `run_main.bat` 與 `run_main.sh` 均需位於你的專案根目錄或指定正確路徑
+- 建議腳本內使用完整絕對路徑，避免排程器找不到目錄
+- 輸出報表與圖表會自動儲存在 `charts/` 和根目錄中
+
+---
+
+## 📌 推薦測試方式
+
+- 在設定排程前，請先手動執行腳本確認無誤：
+    - Windows：雙擊 `run_main.bat`
+    - Linux/macOS：執行 `bash run_main.sh`
+
+---
+
+## 🧠 小提醒：
+
+- Linux 系統請確認 `run_main.sh` 權限正確，可執行：
+```bash
+chmod +x run_main.sh
+```
+
+- 若 Python 環境需特殊設定（如 conda/venv），請在腳本中加入 activate 指令
 
 ---
 
