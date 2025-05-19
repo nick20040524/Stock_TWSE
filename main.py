@@ -12,12 +12,29 @@ from stock.predict_and_export import (
     export_prediction_summary
 )
 from stock.setup_chinese_font import setup_chinese_font
+# 函式庫引入
+import pandas as pd
+from IPython.display import display
+
+# 略過憑證驗證的警告，非錯誤，是urllib3 在提醒你：「你正在跳過 SSL 憑證驗證」
+# 這些警告出現在 verify=False 時屬於預期行為，不影響程式執行
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=Warning, module="urllib3")
+
+# 是否驗證 SSL 憑證（False 可避免 TWSE 出錯）
+verify_ssl = False
 
 # 設定中文字體以供 matplotlib 繪圖使用，避免亂碼
 prop = setup_chinese_font()
 
 # 取得 TWSE 股票清單
-stock_info_df = twse_stock_info()
+stock_info_df = twse_stock_info(use_cache=False, verify_ssl=False)
+
+# 加入防呆判斷（避免 DataFrame 是空的或格式錯誤）
+if stock_info_df.empty or "有價證券代號代碼" not in stock_info_df.columns:
+    print("❌ TWSE 股票清單無法取得或格式錯誤，終止執行")
+    exit()
 
 # 指定要預測的股票代碼
 stock_codes = get_target_codes()
@@ -38,7 +55,8 @@ for _, row in stock_df.iterrows():
         update_stock_data_incrementally(
             stock_code=row["有價證券代號代碼"],
             stock_name=row["有價證券代號名稱"],
-            listed_date=row["上市日"]
+            listed_date=row["上市日"],
+            verify_ssl=verify_ssl
         )
     except Exception as e:
         print(f"❌ 更新 {row['有價證券代號代碼']} 發生錯誤：{e}")
