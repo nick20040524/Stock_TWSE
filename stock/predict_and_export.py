@@ -2,12 +2,9 @@
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
-from IPython.display import display
 from datetime import datetime, timedelta
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, mean_squared_error, accuracy_score
 
 # 從 fallback 資料夾載入指定股票的歷史資料 CSV，過濾無效行（如無收盤價），並加入代碼欄位
 def load_stock_data(stock_code, fallback_dir="."):
@@ -35,7 +32,6 @@ def train_and_predict(df_feat):
     features = ["收盤價_shift1", "漲跌價差_shift1", "成交股數", "收盤_5日均線"]
     X = df_feat[features]
     y_reg = df_feat["收盤價明日"]
-    y_cls = df_feat["漲跌標籤"]
 
     if len(df_feat) < 20:
         print("⚠️ 資料過少，跳過訓練")
@@ -44,29 +40,17 @@ def train_and_predict(df_feat):
     df_feat = df_feat.reset_index(drop=True)
     X = X.reset_index(drop=True)
     y_reg = y_reg.reset_index(drop=True)
-    y_cls = y_cls.reset_index(drop=True)
 
     X_train, X_test, y_train_r, y_test_r = train_test_split(X, y_reg, test_size=0.2, shuffle=False)
-    _, _, y_train_c, y_test_c = train_test_split(X, y_cls, test_size=0.2, shuffle=False)
 
     reg_model = LinearRegression()
     reg_model.fit(X_train, y_train_r)
     y_pred_reg = reg_model.predict(X_test)
 
-    cls_model = RandomForestClassifier(n_estimators=100, random_state=0)
-    cls_model.fit(X_train, y_train_c)
-    y_pred_cls = cls_model.predict(X_test)
-    y_pred_prob = cls_model.predict_proba(X_test)
-
-    # 取每個樣本預測類別的最大機率作為信心度
-    confidence = y_pred_prob.max(axis=1)  # 最大的那一欄（機率值）
-
-    # 回傳預測結果表
     df_result = df_feat.iloc[X_test.index].copy()
     df_result["預測收盤價"] = y_pred_reg
-    df_result["預測漲跌"] = y_pred_cls
-    df_result["實際漲跌"] = y_test_c.values
-    df_result["信心度"] = confidence
+    df_result["預測漲跌"] = (df_result["預測收盤價"] > df_result["收盤價"]).astype(int)
+    df_result["信心度"] = (1 - abs(df_result["預測收盤價"] - df_result["收盤價"]) / df_result["收盤價"]).clip(0, 1)
     return df_result
 
 # 批次處理多檔股票
@@ -91,6 +75,7 @@ def plot_predictions(df_result, output_dir=".", prop=None):
         plt.figure(figsize=(10, 5))
         plt.plot(group["日期"], group["收盤價"], label="實際收盤價", alpha=0.8)
         plt.plot(group["日期"], group["預測收盤價"], linestyle='--', label="預測收盤價", alpha=0.8)
+        plt.xticks(rotation=45)  # 日期軸旋轉改善可讀性
 
         stock_name = group["有價證券代號名稱"].iloc[0]
         title = f"{code} {stock_name} 收盤價預測"
@@ -112,15 +97,11 @@ def plot_predictions(df_result, output_dir=".", prop=None):
 def export_prediction_summary(df_result, output_path="prediction_report.xlsx"):
     today_str = datetime.today().strftime("%Y/%m/%d")
 
-    # 取得每支股票最後一筆預測
     latest = df_result.sort_values("日期").groupby("股票代碼").tail(1).copy()
-
-    # 計算預測日期：預設為最後日期 + 1 天
     latest["預測日期"] = latest["日期"] + timedelta(days=1)
     latest["預測日期"] = latest["預測日期"].dt.strftime("%Y/%m/%d")
     latest["今天日期"] = today_str
 
-    # 漲跌符號與百分比
     latest["漲跌結果"] = latest["預測漲跌"].map({1: "↑ 漲", 0: "↓ 跌"})
     latest["信心度"] = (latest["信心度"] * 100).round(2).astype(str) + "%"
 
@@ -129,6 +110,7 @@ def export_prediction_summary(df_result, output_path="prediction_report.xlsx"):
         "收盤價", "預測收盤價", "漲跌結果", "信心度"
     ]].copy()
 
+    summary["開盤日"] = latest["日期"].dt.strftime("%Y/%m/%d")  # 加上開盤日欄位
     summary["收盤價"] = summary["收盤價"].round(2)
     summary["預測收盤價"] = summary["預測收盤價"].round(2)
 
