@@ -2,6 +2,7 @@
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
+import joblib
 from datetime import datetime, timedelta
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
@@ -25,30 +26,64 @@ def build_features(df):
     df["漲跌標籤"] = (df["收盤價明日"] > df["收盤價"]).astype(int)
     return df.dropna()
 
-def train_and_predict(df_feat):
+def train_and_predict(df_feat, stock_code):
     features = ["收盤價_shift1", "漲跌價差_shift1", "成交股數", "收盤_5日均線"]
     X = df_feat[features]
     y_reg = df_feat["收盤價明日"]
 
     if len(df_feat) < 20:
-        print("⚠️ 資料過少，跳過訓練")
+        print(f"⚠️ {stock_code} 資料過少，跳過訓練")
         return pd.DataFrame()
 
     df_feat = df_feat.reset_index(drop=True)
     X = X.reset_index(drop=True)
     y_reg = y_reg.reset_index(drop=True)
 
-    X_train, X_test, y_train_r, y_test_r = train_test_split(X, y_reg, test_size=0.2, shuffle=False)
+    X_train, X_test, y_train, y_test = train_test_split(X, y_reg, test_size=0.2, shuffle=False)
 
     reg_model = LinearRegression()
-    reg_model.fit(X_train, y_train_r)
-    y_pred_reg = reg_model.predict(X_test)
+    reg_model.fit(X_train, y_train)
+
+    # 儲存模型
+    os.makedirs("models", exist_ok=True)
+    model_path = f"models/model_{stock_code}.pkl"
+    joblib.dump(reg_model, model_path)
+    print(f"💾 已訓練並儲存模型：{model_path}")
+
+    y_pred = reg_model.predict(X_test)
 
     df_result = df_feat.iloc[X_test.index].copy()
-    df_result["預測收盤價"] = y_pred_reg
-    df_result["預測漲跌"] = (df_result["預測收盤價"] > df_result["收盤價"]).astype(int)
-    df_result["信心度"] = (1 - abs(df_result["預測收盤價"] - df_result["收盤價"]) / df_result["收盤價"]).clip(0, 1)
+    df_result["預測收盤價"] = y_pred
+    df_result["預測漲跌"] = (y_pred > df_result["收盤價"]).astype(int)
+    df_result["信心度"] = (1 - abs(y_pred - df_result["收盤價"]) / df_result["收盤價"]).clip(0, 1)
     return df_result
+
+def load_model_and_predict(df_feat, stock_code):
+    model_path = f"models/model_{stock_code}.pkl"
+    if not os.path.exists(model_path):
+        print(f"❌ 找不到模型：{model_path}")
+        return pd.DataFrame()
+
+    reg_model = joblib.load(model_path)
+    print(f"📥 載入模型：{model_path}")
+
+    features = ["收盤價_shift1", "漲跌價差_shift1", "成交股數", "收盤_5日均線"]
+    X = df_feat[features].reset_index(drop=True)
+    df_feat = df_feat.reset_index(drop=True)
+
+    y_pred = reg_model.predict(X)
+    df_result = df_feat.copy()
+    df_result["預測收盤價"] = y_pred
+    df_result["預測漲跌"] = (y_pred > df_result["收盤價"]).astype(int)
+    df_result["信心度"] = (1 - abs(y_pred - df_result["收盤價"]) / df_result["收盤價"]).clip(0, 1)
+    return df_result
+
+def ensure_model_and_predict(df_feat, stock_code):
+    model_path = f"models/model_{stock_code}.pkl"
+    if os.path.exists(model_path):
+        return load_model_and_predict(df_feat, stock_code)
+    else:
+        return train_and_predict(df_feat, stock_code)
 
 def predict_multiple_stocks(stock_codes):
     all_results = []
@@ -57,7 +92,7 @@ def predict_multiple_stocks(stock_codes):
         if df is None:
             continue
         df_feat = build_features(df)
-        df_pred = train_and_predict(df_feat)
+        df_pred = ensure_model_and_predict(df_feat, stock_code=code)
         df_pred["股票代碼"] = code
         all_results.append(df_pred)
     return pd.concat(all_results, ignore_index=True) if all_results else pd.DataFrame()
