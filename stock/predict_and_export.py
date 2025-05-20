@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
+# 資料讀取
 def load_stock_data(stock_code, fallback_dir="."):
     path = os.path.join(fallback_dir, f"fallback_{stock_code}.csv")
     if not os.path.exists(path):
@@ -17,6 +18,8 @@ def load_stock_data(stock_code, fallback_dir="."):
     df["股票代碼"] = stock_code
     return df
 
+# 特徵建構
+# 從 fallback 目錄讀取指定股票代碼的歷史資料（CSV），並過濾掉無效欄位（收盤價與成交股數缺值）
 def build_features(df):
     df = df.copy()
     df["收盤價_shift1"] = df["收盤價"].shift(1)
@@ -26,6 +29,7 @@ def build_features(df):
     df["漲跌標籤"] = (df["收盤價明日"] > df["收盤價"]).astype(int)
     return df.dropna()
 
+# 模型訓練與儲存模型
 def train_and_predict(df_feat, stock_code):
     features = ["收盤價_shift1", "漲跌價差_shift1", "成交股數", "收盤_5日均線"]
     X = df_feat[features]
@@ -58,6 +62,7 @@ def train_and_predict(df_feat, stock_code):
     df_result["信心度"] = (1 - abs(y_pred - df_result["收盤價"]) / df_result["收盤價"]).clip(0, 1)
     return df_result
 
+# 模型載入與推論
 def load_model_and_predict(df_feat, stock_code):
     model_path = f"models/model_{stock_code}.pkl"
     if not os.path.exists(model_path):
@@ -78,6 +83,7 @@ def load_model_and_predict(df_feat, stock_code):
     df_result["信心度"] = (1 - abs(y_pred - df_result["收盤價"]) / df_result["收盤價"]).clip(0, 1)
     return df_result
 
+# 統一入口：先檢查模型是否存在
 def ensure_model_and_predict(df_feat, stock_code):
     model_path = f"models/model_{stock_code}.pkl"
     if os.path.exists(model_path):
@@ -85,6 +91,7 @@ def ensure_model_and_predict(df_feat, stock_code):
     else:
         return train_and_predict(df_feat, stock_code)
 
+# 多支股票批次預測
 def predict_multiple_stocks(stock_codes):
     all_results = []
     for code in stock_codes:
@@ -97,7 +104,47 @@ def predict_multiple_stocks(stock_codes):
         all_results.append(df_pred)
     return pd.concat(all_results, ignore_index=True) if all_results else pd.DataFrame()
 
-def plot_predictions(df_result, output_dir=".", prop=None):
+# 預測結果圖表輸出(預測日往前算10天)
+def plot_predictions_ten(df_result, output_dir=".", prop=None):
+    os.makedirs(output_dir, exist_ok=True)
+    grouped = df_result.groupby("股票代碼")
+
+    for code, group in grouped:
+        last_date = group["日期"].max()
+        pred_date = last_date + timedelta(days=1)
+
+        # 過濾：預測日前 10 天到預測日
+        start_date = pred_date - timedelta(days=10)
+        df_zoom = group[(group["日期"] >= start_date) & (group["日期"] <= pred_date)].copy()
+
+        if df_zoom.empty:
+            print(f"⚠️ {code} 在預測日前 10 天內沒有資料，跳過圖表")
+            continue
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(df_zoom["日期"], df_zoom["收盤價"], label="實際收盤價", alpha=0.8)
+        plt.plot(df_zoom["日期"], df_zoom["預測收盤價"], linestyle='--', label="預測收盤價", alpha=0.8)
+        plt.axvline(pred_date, color="red", linestyle=":", label="預測日")
+        plt.xticks(rotation=45)
+
+        stock_name = df_zoom["有價證券代號名稱"].iloc[0]
+        title = f"{code} {stock_name} 收盤價趨勢（預測日前10天）"
+        plt.title(title, fontproperties=prop)
+        plt.xlabel("日期", fontproperties=prop)
+        plt.ylabel("收盤價", fontproperties=prop)
+        plt.xticks(fontproperties=prop)
+        plt.yticks(fontproperties=prop)
+        plt.legend(prop=prop)
+        plt.grid(True)
+        plt.tight_layout()
+
+        filename = os.path.join(output_dir, f"price_prediction_{code}_ten.png")
+        plt.savefig(filename)
+        print(f"📈 已儲存圖檔：{filename}")
+        plt.close()
+
+# 預測結果圖表輸出(上市日至預測日)
+def plot_predictions_all(df_result, output_dir=".", prop=None):
     os.makedirs(output_dir, exist_ok=True)
     grouped = df_result.groupby("股票代碼")
     for code, group in grouped:
@@ -117,11 +164,12 @@ def plot_predictions(df_result, output_dir=".", prop=None):
         plt.grid(True)
         plt.tight_layout()
 
-        filename = os.path.join(output_dir, f"price_prediction_{code}.png")
+        filename = os.path.join(output_dir, f"price_prediction_{code}_all.png")
         plt.savefig(filename)
         print(f"📈 已儲存圖檔：{filename}")
         plt.close()
 
+# 預測摘要報告輸出
 def export_prediction_summary(df_result, output_path="prediction_report.xlsx"):
     today_str = datetime.today().strftime("%Y/%m/%d")
     latest = df_result.sort_values("日期").groupby("股票代碼").tail(1).copy()

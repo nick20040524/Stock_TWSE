@@ -7,10 +7,14 @@ from stock.update_module import (
 )
 from stock.predict_and_export import (
     predict_multiple_stocks,
-    plot_predictions,
+    plot_predictions_ten,
+    plot_predictions_all,
     export_prediction_summary
 )
 from stock.setup_chinese_font import setup_chinese_font
+# 上述函式庫若在colab執行不須引入，會報錯
+
+#引入必要函式
 import pandas as pd
 import os
 import warnings
@@ -72,7 +76,8 @@ result_df = predict_multiple_stocks(valid_codes)
 
 # 📈 若有結果，進行圖表與報表輸出
 if not result_df.empty:
-    plot_predictions(result_df, output_dir="charts", prop=prop)
+    plot_predictions_ten(result_df, output_dir="charts", prop=prop)
+    plot_predictions_all(result_df, output_dir="charts", prop=prop)
     export_prediction_summary(result_df, "prediction_report.xlsx")
 else:
     print("⚠️ 沒有可用的預測結果（可能是 fallback 無資料或模型訓練失敗）")

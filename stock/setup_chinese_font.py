@@ -16,7 +16,7 @@ def setup_chinese_font():
         font_path = "/System/Library/Fonts/STHeiti Light.ttc"
     else:
         raise EnvironmentError("不支援的作業系統")
-    
+
     # 檢查字體檔是否存在
     if not os.path.exists(font_path):
         raise FileNotFoundError(f"找不到中文字體檔：{font_path}，請安裝相應中文字體")
